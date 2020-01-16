@@ -1,0 +1,43 @@
+{
+    "name": "dima731515/sber.v2",
+    "description": "оплата через Сбербанк",
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "Dmitriy",
+            "email": "dima731515@yandex.ru"
+        }
+    ],
+    "scripts":{
+        "test":[
+            "@clearCache",
+            "phpunit" 
+        ],
+        "clearCache": "rm -rf cache/*"
+    },
+    "autoload": {
+        "psr-4": {
+            "dima731515\\SberPay\\": "src/"
+        },
+        "files": [
+        ]
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "dima731515\\tests\\": "tests/"
+        },
+        "files": [
+            "src/test_sber_config.php"
+        ]
+    },
+    "require": {
+        "php": "^7.1",
+        "ext-json": "*",
+        "monolog/monolog": "^2.0",
+        "guzzlehttp/guzzle": "^6.5",
+        "voronkovich/sberbank-acquiring-client": "^2.4"
+    },
+    "require-dev": {
+        "phpunit/phpunit": "^8.5"
+    }
+}
