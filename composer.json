@@ -1,5 +1,6 @@
 {
     "name": "dima731515/sber_pay",
+    "type": "library",
     "description": "оплата через Сбербанк",
     "license": "MIT",
     "authors": [
@@ -39,5 +40,6 @@
     },
     "require-dev": {
         "phpunit/phpunit": "^8.5"
-    }
+    },
+    "minimum-stability": "stable"
 }
