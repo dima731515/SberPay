@@ -28,7 +28,7 @@
             "dima731515\\tests\\": "tests/"
         },
         "files": [
-            "src/test_sber_config.php"
+            "~/.key.php"
         ]
     },
     "require": {

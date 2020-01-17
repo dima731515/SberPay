@@ -20,11 +20,7 @@ use Voronkovich\SberbankAcquiring\Currency;
 use Voronkovich\SberbankAcquiring\HttpClient\HttpClientInterface;
 use Voronkovich\SberbankAcquiring\HttpClient\GuzzleAdapter;
 
-if(null !== phpunit && phpunit !== true)
-{
-    (!$_SERVER["DOCUMENT_ROOT"])?$_SERVER["DOCUMENT_ROOT"] = "/home/bitrix/www":'';
-    require($_SERVER["DOCUMENT_ROOT"]."/bitrix/modules/main/include/prolog_before.php");
-}
+use dima731515\SberPay\BxApiHelper;
 
 class SberPayClient
 {
@@ -216,10 +212,6 @@ class SberPayClient
         return $result; 
     }
 
-    private function initByOrderId(): bool
-    {
-        return true;
-    }
 
     protected function pay(): bool
     {
@@ -232,10 +224,8 @@ class SberPayClient
         // если стоит вернуть true
         if($this->payed)
             return true;
-
-        // если нет, утановить и вернуть результат
-        $res = \CIBlockElement::SetPropertyValues($this->bxInvoiceData['ID'], INVOICE_IBLOCK_ID, "Y", PAYED_FIELD_CODE);
-        $resPayDate = \CIBlockElement::SetPropertyValues($this->bxInvoiceData['ID'], INVOICE_IBLOCK_ID, (new DateTime())->format('d.m.Y H:i:s'), PAY_DATE_FIELD_CODE);
+        
+        BxApiHelper::setInvoicePayById($this->bxInvoiceData['ID']);
 
         return true; 
     }
@@ -329,6 +319,38 @@ class SberPayClient
         return $result;
     }
 
+    private function initByOrderId(string $orderId): bool
+    {
+        try{
+            $this->bxInvoiceData = BxApiHelper::getOrderById( (int) $orderId );
+            $this->summ = (int) ((float) $this->bxInvoiceData['PROPERTY_' . INVOICE_AMOUNT_FIELD_CODE . '_VALUE'] * 100);
+            $this->dateActiveTo = ($this->bxInvoiceData['DATE_ACTIVE_TO'])
+                ? (new \DateTime($this->bxInvoiceData['DATE_ACTIVE_TO']))->modify('+1 day')->format('Y-m-d\TH:i:s')
+                : (new \DateTime())->modify('+1 day')->format('Y-m-d\TH:i:s');
+
+            if('Y' === $this->bxInvoiceData['PROPERTY_' . PAYED_FIELD_CODE . '_VALUE'])
+                $this->payed = true;
+
+            if($this->bxInvoiceData['PROPERTY_' . PAY_DATE_FIELD_CODE . '_VALUE'])
+                $this->payDate = $this->bxInvoiceData['PROPERTY_' . PAY_DATE_FIELD_CODE . '_VALUE'];
+
+            if(isset($this->bxInvoiceData['DETAIL_TEXT']) && !empty($this->bxInvoiceData['DETAIL_TEXT']))
+            {
+                $payLink = json_decode($this->bxInvoiceData['DETAIL_TEXT'], true);
+                if(isset($payLink['orderId']) && !empty($payLink['orderId']))
+                {
+                    $this->uuidSberOrderNumber = $payLink['orderId'];
+                }
+            }
+            
+            $this->payLink = (isset($payLink['formUrl']) && !empty($payLink['formUrl'])) ? $payLink['formUrl'] : '';
+            $this->invoiceInit = true;
+        }catch(\Exception $e)
+        {
+            Throw new \Exception('Не удалось инициализиваровать Заказ!'); 
+        }
+        return true;
+    }
     /**
      * Инициализирует Объект по id счета
      * запрашивает счет по id и заполняет свойства объекта 
@@ -338,7 +360,7 @@ class SberPayClient
     public function initByInvoiceId(string $invoiceId): bool 
     {
         try{
-            $this->bxInvoiceData = $this->getBxInvoiceById( (int)$invoiceId );
+            $this->bxInvoiceData = BxApiHelper::getInvoiceById( (int)$invoiceId );
             $this->summ = (int) ((float) $this->bxInvoiceData['PROPERTY_' . INVOICE_AMOUNT_FIELD_CODE . '_VALUE'] * 100);
             $this->dateActiveTo = ($this->bxInvoiceData['DATE_ACTIVE_TO'])
                 ? (new \DateTime($this->bxInvoiceData['DATE_ACTIVE_TO']))->modify('+1 day')->format('Y-m-d\TH:i:s')
@@ -368,35 +390,6 @@ class SberPayClient
         return true;
     }
 
-    /**
-     * получает Счет из Битрикс используя API Битрикс
-     * @param int invoiceId, id элемента инфоблока
-     * @return array, возввращает стандартный Битрикс Макссив
-     */
-    protected function getBxInvoiceById(int $invoiceId) : array 
-    {
-        if(!CModule::IncludeModule("iblock")) Throw new Exception('Не удалось подключить модуль Iblock для работы с Битикс');
-        $result   = [];
-        $arSelect = ['ID','NAME', 'DETAIL_TEXT', 'DATE_ACTIVE_TO', 'PROPERTY_'. INVOICE_AMOUNT_FIELD_CODE, 'PROPERTY_' . PS_ID_FIELD_CODE, 'PROPERTY_' . PAYED_FIELD_CODE, 'PROPERTY_' . PAY_DATE_FIELD_CODE];
-        $res = CIBlockElement::getList(['ID'=>'ASC'], ['IBLOCK_ID'=>INVOICE_IBLOCK_ID,'ID'=>$invoiceId], false, ['nTopCount'=>1, 'nPageSize' => 1], $arSelect);
-        while($row = $res->fetch()){
-            return $row;
-        }
-        Throw new Exception('Не удалось инициализировать объект данными из Битрикс');
-    }
-    /**
-     * сохраняет сылку на оплату полученную в сбер в счете Битрикс, чтобы повторно не запрашивать
-     * @param string data, все, что прислал Сбер на запрос ссылки на оплату 
-     * @return bool
-     */
-    protected function setPayLinkDataInBxInvoice(string $data) : bool
-    {
-        if(!CModule::IncludeModule("iblock")) Throw new Exception('Не удалось подключить модуль Iblock для работы с Битикс');
-        $el = new CIBlockElement;
-        $prop = ['DETAIL_TEXT'=>$data];
-        $res = $el->Update($this->bxInvoiceData['ID'], $prop);
-        return $res;
-    }
     /**
      * получает и устанавливает настройки для доступа к Сбер в зависимости от Юр лица
      * @param string $code
