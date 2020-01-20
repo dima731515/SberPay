@@ -12,13 +12,19 @@ class BxApiHelper
 {
     public function __construct()
     {
-        if(!\CModule::IncludeModule('iblock')) Throw new Exception('Не удалось подключить модуль Iblock для работы с Битикс');
-        if(!\CModule::IncludeModule('sale')) Throw new Exception('Не удалось подключить модуль Iblock для работы с Битикс');
+        if (!\CModule::IncludeModule('iblock')) {
+            throw new Exception('Не удалось подключить модуль Iblock для работы с Битикс');
+        }
+        if (!\CModule::IncludeModule('sale')) {
+            throw new Exception('Не удалось подключить модуль Iblock для работы с Битикс');
+        }
     }
 
     public static function getInvoiceById(int $invoiceId): ?array
     {
-        if(!\CModule::IncludeModule('iblock')) Throw new Exception('Не удалось подключить модуль Iblock для работы с Битикс');
+        if (!\CModule::IncludeModule('iblock')) {
+            throw new Exception('Не удалось подключить модуль Iblock для работы с Битикс');
+        }
 
         $arSelect = [
             'ID',
@@ -38,18 +44,17 @@ class BxApiHelper
             ['nPageSize'=>1],
             $arSelect
         );
-        while($invoice = $res->Fetch()){
+        while ($invoice = $res->Fetch()) {
             return $invoice;
         }
-        Throw new \Exception('Не удалось инициализировать объект данными из Битрикс');
+        throw new \Exception('Не удалось инициализировать объект данными из Битрикс', 737);
     }
 
     public static function getOrderById(int $orderId): ?array
     {
-        $arOrder = \CSaleOrder::GetByID($orderId);    
-        if(!$arOrder)
-        {
-            Throw new \Exception('Заказ не найден или не удалось загрузить');
+        $arOrder = \CSaleOrder::GetByID($orderId);
+        if (!$arOrder) {
+            throw new \Exception('Заказ не найден или не удалось загрузить');
         }
         
         $arResult = [
@@ -64,12 +69,12 @@ class BxApiHelper
             'PROPERTY_' . PAY_DATE_FIELD_CODE . '_VALUE' => $arOrder['DATE_PAYED']
         ];
 
-        return $arResult; 
+        return $arResult;
     }
 
     /**
      * сохраняет сылку на оплату полученную в сбер в счете Битрикс, чтобы повторно не запрашивать
-     * @param string data, все, что прислал Сбер на запрос ссылки на оплату 
+     * @param string data, все, что прислал Сбер на запрос ссылки на оплату
      * @return bool
      */
     public static function setPayLinkDataInBxInvoice(int $id, string $data) : bool
@@ -79,17 +84,18 @@ class BxApiHelper
         $res = $el->Update($id, $prop);
         return $res;
     }
-    public static function setPayLinkDataInBxOrder(int $id, string $data): bool 
+    public static function setPayLinkDataInBxOrder(int $id, string $data): bool
     {
         $arFields = [
             'ADDITIONAL_INFO' =>$data,
 //            'COMMENTS' =>'test2',
 //            'PS_STATUS_DESCRIPTION'=>$data,
-        ]; 
+        ];
         $res = \CSaleOrder::Update($id, $arFields);
 //        \CSaleOrder::CommentsOrder($id, $data);
-        if($res)
+        if ($res) {
             return true;
+        }
 
         return false;
     }
@@ -103,8 +109,9 @@ class BxApiHelper
 
     public static function setOrderPayById(int $orderId): bool
     {
-        if (!CSaleOrder::PayOrder($orderId, "Y", True, True, 0, array('DATE_PAYED' => new \DateTime() ))) 
-            Throw new \Exception('Не удаллось проставить флаг оплаты Заказу с номером: ' . $orderId);
+        if (!CSaleOrder::PayOrder($orderId, "Y", true, true, 0, array('DATE_PAYED' => new \DateTime() ))) {
+            throw new \Exception('Не удаллось проставить флаг оплаты Заказу с номером: ' . $orderId);
+        }
         return true;
     }
 }

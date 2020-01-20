@@ -100,11 +100,26 @@ class SberPayClient
             }
             $this->decodeExternalId($this->callback->getExternalId());
 
-            if ('invoice' === $this->orderType):
-                $init = $this->initByInvoiceId($this->orderNum); elseif ('order' === $this->orderType):
-                $init = $this->initByOrderId($this->orderNum); else:
+            if ('invoice' === $this->orderType) {
+                $init = $this->initByInvoiceId($this->orderNum);
+                // 737 - очень важное число, чтобы выяснить какое именно число использовать, было преведено научаное исследование
+                // Опрошены сотни программистов
+                if ($init  === 737) {
+                    // делаем запрос на maxlevel
+                    $httpClient = (new Guzzle())->post(
+                        'https://maxlevel.ru/pay/callback.php',
+                        [
+                            'body'=>$json,
+                            'headers' => ['Content-Type' => 'application/json']
+                        ]
+                    );
+                    return false;
+                }
+            } elseif ('order' === $this->orderType) {
+                $init = $this->initByOrderId($this->orderNum);
+            } else {
                 throw new \Exception('Неизвесный тип платежа');
-            endif;
+            };
 
             $this->callback->initConfig($this->config);
 
@@ -128,7 +143,7 @@ class SberPayClient
             throw new \Exception('Не удалось проставить факт оплаты!');
         }
         $this->logger->info('Обработчик запросов сбер отработал без ошибок!', []);
-        return ['company'=>$this->orderCompanyCode, 'orderNum'=>$this->orderNum, 'orderType'=>$this->orderType];
+        return ['company'=>$this->orderCompanyCode, 'orderNum'=>$this->orderNum, 'orderType'=>$this->orderType, 'name'=>$this->bxInvoiceData['NAME']];
     }
 
     /**
@@ -406,6 +421,13 @@ class SberPayClient
 
             $this->initConfigByCompanyCode();
         } catch (\Exception $e) {
+            // todo: для GMS проверить если в Исключении содежится код отсутствия счета
+            // и текущий сайт ГМС
+            // отправить запрос на maxlevel (из этого метода сделать return '';)
+            // вероятно оплата была ссделана там
+            if ($e->getCode() === 737) {
+                return 737;
+            }
             $this->logger->info($e->getMessage(), []);
             throw new \Exception('Не удалось инициализиваровать счет!');
         }
