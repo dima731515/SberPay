@@ -4,5 +4,4 @@ namespace dima731515\SberPay;
 
 interface Pay
 {
-
 }
