@@ -106,11 +106,15 @@ class SberPayClient
                 // Опрошены сотни программистов
                 if ($init  === 737) {
                     // делаем запрос на maxlevel
-                    $httpClient = (new Guzzle())->post(
-                        'https://maxlevel.ru/pay/callback.php',
-                        [
-                            'body'=>$json,
-                            'headers' => ['Content-Type' => 'application/json']
+                    $client = new Guzzle(['base_uri'=>'https://www.maxlevel.ru/pay/callback.php']);
+                    $result = $client->request(
+                        'POST',
+                        '',
+                        [GuzzleHttp\RequestOptions::JSON => json_decode($json),
+                        'header'=> [
+                            "Content-Type"=>"application/json;charset=utf-8",
+                            'Accept'=> 'application/json'
+                            ]
                         ]
                     );
                     return false;
