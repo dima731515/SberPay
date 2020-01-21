@@ -99,6 +99,11 @@ class BxApiHelper
 
         return false;
     }
+    public static function setExternalIdForPrefektoInvoice(int $invoiceId): bool
+    {
+        $res = \CIBlockElement::SetPropertyValues($invoiceId, INVOICE_IBLOCK_ID, 'perfekto-' . $invoiceId . '-invoice', EXTERNAL_ID);
+        return true;
+    }
 
     public static function setInvoicePayById(int $invoiceId): bool
     {

@@ -251,6 +251,7 @@ class SberPayClient
             return false;
         }
 
+        BxApiHelper::setExternalIdForPrefektoInvoice((int)$this->bxInvoiceData['ID']);
         $this->payLink = $payLink['formUrl'];
 
         return true;
@@ -275,6 +276,7 @@ class SberPayClient
                 BxApiHelper::setPayLinkDataInBxOrder((int)$this->bxInvoiceData['ID'], json_encode($result));
             } elseif ($this->orderType === 'invoice') {
                 BxApiHelper::setPayLinkDataInBxInvoice((int)$this->bxInvoiceData['ID'], json_encode($result));
+                BxApiHelper::setExternalIdForPrefektoInvoice((int)$this->bxInvoiceData['ID']);
             }
             return true;
         }
@@ -345,7 +347,6 @@ class SberPayClient
             $this->bxInvoiceData = BxApiHelper::getOrderById((int) $orderId);
             $this->orderNum = $this->bxInvoiceData['ID'];
             $this->orderType = 'order';
-            $this->encodeExternalId();
             $this->summ = (int) ((float) $this->bxInvoiceData['PROPERTY_' . INVOICE_AMOUNT_FIELD_CODE . '_VALUE'] * 100);
             $this->dateActiveTo = ($this->bxInvoiceData['DATE_ACTIVE_TO'])
                 ? (new \DateTime($this->bxInvoiceData['DATE_ACTIVE_TO']))->modify('+1 day')->format('Y-m-d\TH:i:s')
@@ -369,6 +370,7 @@ class SberPayClient
                     $this->uuidSberOrderNumber = $payLink['orderId'];
                 }
             }
+            $this->encodeExternalId();
             
             $this->payLink = (isset($payLink['formUrl']) && !empty($payLink['formUrl'])) ? $payLink['formUrl'] : '';
             $this->invoiceInit = true;
@@ -391,7 +393,6 @@ class SberPayClient
             $this->bxInvoiceData = BxApiHelper::getInvoiceById((int)$invoiceId);
             $this->orderNum = $this->bxInvoiceData['ID'];
             $this->orderType = 'invoice';
-            $this->encodeExternalId();
             $this->summ = (int) ((float) $this->bxInvoiceData['PROPERTY_' . INVOICE_AMOUNT_FIELD_CODE . '_VALUE'] * 100);
             $this->dateActiveTo = ($this->bxInvoiceData['DATE_ACTIVE_TO'])
                 ? (new \DateTime($this->bxInvoiceData['DATE_ACTIVE_TO']))->modify('+1 day')->format('Y-m-d\TH:i:s')
@@ -416,6 +417,8 @@ class SberPayClient
                 }
             }
             
+            $this->encodeExternalId();
+
             $this->payLink = (isset($payLink['formUrl']) && !empty($payLink['formUrl'])) ? $payLink['formUrl'] : '';
             $this->invoiceInit = true;
 
